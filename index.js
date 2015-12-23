@@ -1,80 +1,116 @@
 
 var Promise = require('es6-promise').Promise;
-var injection = require('injection');
+var inject = require('injection').inject;
 
 var Polypromise = function() {
 
 }
-
-
-var test = new Pending(function(resolve,reject,a,b,c,) {
-
-}, [1,2,3])
-
 /*
 Pending
 */
-var pendings = {},
+var pendings = {}, 
 Pending = function(callback, args) {
-    this.$then = null;
-    this.$catch = null;
+	this.$then = null;
+	this.$catch = null;
+	this.$id = null;
+	this.$status = 0; // Pending
+	
+	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : args.toString() );
 
-    var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : args.toString() );
-    if (pendings[id]) {
-        pendings[id].queue.push(this);
-    } else {
-        pendings[id] = {
-            queue: []
-        };
-        pendings[id].queue.push(this);
+	this.$id = id;
+	if (pendings[id]) {
+		pendings[id].queue.push(this);
+	} else {
+		pendings[id] = {
+			queue: [],
+			result: null,
+			done: 0
+		};
+		pendings[id].queue.push(this);
 
-        if ("function"===typeof callback) {
+		if ("function"===typeof callback) {
+
             var promising = new Promise(function(resolve, reject) {
-            	injection(callback, {
+            	var injector = inject(callback, {
 	            	resolve: resolve,
 	            	reject: reject
-	            }, this).apply(this, args);
+	            }, this);
+	            injector.apply(this, args);
             });
         } else if ("object"===typeof callback) {
             var promising = callback;
         } else {
             throw 'Pending first argument can be function or Promise, but '+typeof callback+' found';
         }
-        promising.then(function(result) {
-            var requeue = pendings[id].queue;
-            delete pendings[id];
+		
+		promising.then(function(result) {
 
-            for (var i = 0; i < requeue.length;++i) {
-                requeue[i].$resolve(result);
-            }
-        })
-        .catch(function(result) {
-            var requeue = pendings[id].queue;
-            delete pendings[id];
-            for (var i = 0; i < requeue.length;++i) {
-                requeue[i].$catch(result);
-            }
-        });
-    }
+			var requeue = pendings[id].queue;
+			pendings[id].result = result;
+			pendings[id].status = 1;
+
+			for (var i = 0; i < requeue.length;++i) {
+				requeue[i].$resolve(result);
+			}
+
+			// Clear pending queue list after moment
+			setTimeout(function() {
+				delete pendings[id];
+			});
+		})
+		.catch(function(result) {
+			var requeue = pendings[id].queue;
+			pendings[id].result = result;
+			pendings[id].status = 2;
+			for (var i = 0; i < requeue.length;++i) {
+				requeue[i].$catch(result);
+			}
+			// Clear pending queue list after moment
+			setTimeout(function() {
+				delete pendings[id];
+			});
+		});
+	}
 };
 Pending.prototype = {
-    constructor: Pending,
-    $resolve: function(result) {
-        if ("function"===typeof this.$then) this.$then(result);
-    },
-    $reject: function(result) {
-        if ("function"===typeof this.$catch) this.$catch(result);
-    },
-    then: function(cb) {
-        this.$then = cb;
-        return this;
-    },
-    catch: function(cb) {
-        this.$catch = cb;
-        return this;
-    }
+	constructor: Pending,
+	$resolve: function(result) {
+		if ("function"===typeof this.$then) {
+			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
+			this.$then(result);
+		}
+	},
+	$reject: function(result) {
+		if ("function"===typeof this.$catch) {
+			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
+			this.$catch(result);
+		}
+	},
+	then: function(cb) {
+		
+		if (pendings[this.$id].status===1) {
+			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
+			cb(pendings[this.$id].$result);
+		} else {
+			this.$then = cb;
+		}
+		return this;
+	},
+	catch: function(cb) { 
+		
+		if (pendings[this.$id].status===2) {
+			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
+			cb(pendings[this.$id].result);
+		} else {
+			this.$catch = cb;
+		}
+		
+		return this;
+	}
 };
-
 
 Polypromise.Promise = Promise;
 Polypromise.Pending = Pending;
+
+
+module.exports = Polypromise;
