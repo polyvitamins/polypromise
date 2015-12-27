@@ -10,7 +10,7 @@ var Polypromise = function() {
 Сredible
 */
 
-var Credible = function() {
+var Creed = function() {
 	Object.defineProperty(this, '__credible__', {
 		enumerable: false,
 		writable: false,
@@ -22,7 +22,7 @@ var Credible = function() {
 			data: []
 		}
 	});
-}
+};
 
 Creed.prototype = {
 	constructor: Creed,
