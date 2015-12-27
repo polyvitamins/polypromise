@@ -5,6 +5,51 @@ var inject = require('injection').inject;
 var Polypromise = function() {
 
 }
+
+/*
+Сredible
+*/
+
+var Credible = function() {
+	Object.defineProperty(this, '__credible__', {
+		enumerable: false,
+		writable: false,
+		configurable: false,
+		value: {
+			state: 0, // Wait for state
+			resolveQueue: [], // Queue of then callback functions
+			rejectQueue: [], // Queue of catch callback functions
+			data: []
+		}
+	});
+}
+
+Credible.prototype = {
+	constructor: Credible,
+	$resolve: function() {
+		if (this.__credible__.state!==0) throw 'You can not change Credible state twice';
+		this.__credible__.state = 1;
+		this.__credible__.data = Array.prototype.splice.apply(arguments);
+		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
+	},
+	$reject: function() {
+		if (this.__credible__.state!==0) throw 'You can not change Credible state twice';
+		this.__credible__.state = 2;
+		this.__credible__.data = Array.prototype.splice.apply(arguments);
+		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
+	},
+	then: function(cb) {
+		if (this.__credible__.state===0) this.__credible__.resolveQueue.push(cb);
+		else if (this.__credible__.state===1) cb.apply(this, this.__credible__.data);
+		return this;
+	},
+	catch: function(cb) { 
+		if (this.__credible__.state===0) this.__credible__.rejectQueue.push(cb);
+		else if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
+		return this;
+	}
+}
+
 /*
 Pending
 */
@@ -111,6 +156,7 @@ Pending.prototype = {
 
 Polypromise.Promise = Promise;
 Polypromise.Pending = Pending;
+Polypromise.Credible = Credible;
 
 
 module.exports = Polypromise;
