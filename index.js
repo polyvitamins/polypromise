@@ -24,16 +24,16 @@ var Credible = function() {
 	});
 }
 
-Credible.prototype = {
-	constructor: Credible,
+Creed.prototype = {
+	constructor: Creed,
 	$resolve: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Credible state twice';
+		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 1;
 		this.__credible__.data = Array.prototype.splice.apply(arguments);
 		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
 	},
 	$reject: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Credible state twice';
+		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 2;
 		this.__credible__.data = Array.prototype.splice.apply(arguments);
 		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
@@ -156,7 +156,7 @@ Pending.prototype = {
 
 Polypromise.Promise = Promise;
 Polypromise.Pending = Pending;
-Polypromise.Credible = Credible;
+Polypromise.Creed = Creed;
 
 
 module.exports = Polypromise;
