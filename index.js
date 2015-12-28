@@ -64,7 +64,7 @@ var Promises = function(spawn) {
 	this.$completed = 0;
 
 	var SubPromise = function(cb) {
-		this.$promises.push(new Promise(cb));
+		return this.$promises.push(new Promise(cb));
 	}.bind(this);
 
 	spawn(SubPromise);
