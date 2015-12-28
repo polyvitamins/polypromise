@@ -1,5 +1,6 @@
 var tap = require('tap'),
 Promise = require('./index.js').Promise,
+Promises = require('./index.js').Promises,
 Pending = require('./index.js').Pending;
 
 tap.test('Test classic promise', function(t) {
@@ -206,4 +207,46 @@ tap.test('Test pending with delay between requests',function (t) {
 	    });
     });
 	
+});
+
+tap.test('Test promises', function(t) {
+	t.plan(1);
+	new Promises(function(Promise) {
+		var i = 0;
+		for (var a = 0;a<4;++a) {
+			Promise(function(resolve, reject) {
+				setTimeout(function(i) {
+					resolve(i);
+				}.bind(this, i), i);
+				i += 100;
+			});
+		};
+	}).then(function() {
+		t.ok(arguments[0]===0 && arguments[1]===100 && arguments[2]===200 && arguments[3]===300, 'Resolve must have 4 arguments 0, 100, 200, 300');
+	}).catch(function() {
+		t.bailout('This promises can`t reject');
+	});
+});
+
+
+tap.test('Test promises reject', function(t) {
+    t.plan(1);
+    new Promises(function(Promise) {
+        var i = 0;
+        for (var a = 0;a<4;++a) {
+            Promise(function(resolve, reject) {
+                setTimeout(function(i) {
+                    if (i==200)
+                        reject('Shit happens');
+                    else
+                    resolve(i);
+                }.bind(this, i), i);
+                i += 100;
+            });
+        };
+    }).catch(function() {
+            t.ok(arguments[0]===0 && arguments[1]===100 && arguments[2] === 'Shit happens' && arguments[3]===300, 'Resolve must have 4 arguments 0, 100, 200, 300');
+        }).then(function() {
+            t.bailout('This promises can`t resolved');
+        });
 });

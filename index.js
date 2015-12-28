@@ -6,10 +6,11 @@ var Polypromise = function() {
 
 }
 
+
+
 /*
 Сredible
 */
-
 var Creed = function() {
 	Object.defineProperty(this, '__credible__', {
 		enumerable: false,
@@ -29,14 +30,14 @@ Creed.prototype = {
 	$resolve: function() {
 		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 1;
-		this.__credible__.data = Array.prototype.splice.apply(arguments);
+		this.__credible__.data = Array.prototype.slice.apply(arguments);
 		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
 	},
 	$reject: function() {
 		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 2;
-		this.__credible__.data = Array.prototype.splice.apply(arguments);
-		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
+		this.__credible__.data = Array.prototype.slice.apply(arguments);
+		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.rejectQueue[i].apply(this, this.__credible__.data);
 	},
 	then: function(cb) {
 		if (this.__credible__.state===0) this.__credible__.resolveQueue.push(cb);
@@ -49,6 +50,60 @@ Creed.prototype = {
 		return this;
 	}
 }
+
+/*
+Promises
+*/
+var Promises = function(spawn) {
+	// Inherit Creed
+	Creed.apply(this);
+
+	this.$promises = [];
+	this.$results = [];
+	this.$state = 0;
+	this.$completed = 0;
+
+	var SubPromise = function(cb) {
+		this.$promises.push(new Promise(cb));
+	}.bind(this);
+
+	spawn(SubPromise);
+	var self = this;
+	if (this.$promises.length>0)
+	for (var i = 0;i<this.$promises.length;++i) {
+		this.$promises[i]
+		.then(function(i) {
+			this.$results[i] = arguments[1];
+			++this.$completed;
+			this.$$test();
+		}.bind(this, i))
+		.catch(function(i, e) {
+			this.$results[i] = e;
+			this.$state = 2; // Force reject
+			++this.$completed;
+			this.$$test();
+		}.bind(this, i));
+	}
+	else {
+		this.$state = 1; // Force reject
+		this.$$test();
+	}
+}
+
+Promises.prototype = Object.create(Creed.prototype, {
+	constructor: {
+        value: Promises
+    },
+	$$test: {
+        value: function() {
+            if (this.$completed===this.$promises.length) {
+                this.$state = this.$state!==2 ? 1 : 2;
+
+                this[this.$state===1 ? '$resolve' : '$reject'].apply(this, this.$results);
+            }
+        }
+    }
+});
 
 /*
 Pending
@@ -155,6 +210,7 @@ Pending.prototype = {
 };
 
 Polypromise.Promise = Promise;
+Polypromise.Promises = Promises;
 Polypromise.Pending = Pending;
 Polypromise.Creed = Creed;
 
