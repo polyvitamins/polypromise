@@ -115,7 +115,7 @@ Pending = function(callback, args) {
 	this.$id = null;
 	this.$status = 0; // Pending
 	
-	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : args.toString() );
+	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : (args===undefined ? '' : args.toString()) );
 
 	this.$id = id;
 	if (pendings[id]) {
