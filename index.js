@@ -1,54 +1,12 @@
-
+/*
+Be carefull. Promise injected by WebPack can`t resolve Promise-like argument
+for example resolve(new Promise()) gives paradox result
+*/
 var Promise = require('es6-promise').Promise;
 var inject = require('injection').inject;
 
 var Polypromise = function() {
 
-}
-
-
-
-/*
-Сredible
-*/
-var Creed = function() {
-	Object.defineProperty(this, '__credible__', {
-		enumerable: false,
-		writable: false,
-		configurable: false,
-		value: {
-			state: 0, // Wait for state
-			resolveQueue: [], // Queue of then callback functions
-			rejectQueue: [], // Queue of catch callback functions
-			data: []
-		}
-	});
-};
-
-Creed.prototype = {
-	constructor: Creed,
-	$resolve: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
-		this.__credible__.state = 1;
-		this.__credible__.data = Array.prototype.slice.apply(arguments);
-		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.resolveQueue[i].apply(this, this.__credible__.data);
-	},
-	$reject: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
-		this.__credible__.state = 2;
-		this.__credible__.data = Array.prototype.slice.apply(arguments);
-		for (var i =0;i<this.__credible__.resolveQueue.length;++i) this.__credible__.rejectQueue[i].apply(this, this.__credible__.data);
-	},
-	then: function(cb) {
-		if (this.__credible__.state===0) this.__credible__.resolveQueue.push(cb);
-		else if (this.__credible__.state===1) cb.apply(this, this.__credible__.data);
-		return this;
-	},
-	catch: function(cb) { 
-		if (this.__credible__.state===0) this.__credible__.rejectQueue.push(cb);
-		else if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
-		return this;
-	}
 }
 
 /*
@@ -90,6 +48,99 @@ var Promises = function(spawn) {
 	}
 }
 
+/*
+Сredible
+*/
+var Creed = function() {
+
+	Object.defineProperty(this, '__credible__', {
+		enumerable: false,
+		writable: false,
+		configurable: false,
+		pending: false,
+		resolver: false,
+		value: {
+			state: 0, // Wait for state
+			resolveQueue: [], // Queue of then callback functions
+			rejectQueue: [], // Queue of catch callback functions
+			data: []
+		}
+	});
+};
+
+Creed.prototype = {
+	constructor: Creed,
+	/*
+	Just eval cb like classic promise resolver
+	*/
+	$eval: function(cb) {
+		var self = this;
+		this.__credible__.resolver = cb;
+		cb.call(this, function() {
+			self.$resolve.apply(self, arguments);
+		}, function(result) { self.$reject.apply(self, arguments); });
+		return this;
+	},
+	/*
+	Ignore last pending resolver if got new pending
+	*/
+	$pending: function(cb) {
+		this.__credible__.state=0;
+		if (this.__credible__.pending) {
+			debugger;
+			delete this.__credible__.pending;
+		}
+
+		var p = new Creed();
+		this.__credible__.pending = p;
+		var self = this;
+		p.then(function(response) {
+			debugger;
+			if (self.__credible__.pending===p) // Ignore deprecated pendings
+			self.$resolve(response);
+		})
+		.catch(function(response) {
+			if (self.__credible__.pending===p) // Ignore deprecated pendings
+			self.$reject(response);
+		});
+
+		p.$eval(cb);
+	},
+	$resolve: function() {
+		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+		this.__credible__.state = 1;
+		this.__credible__.data = Array.prototype.slice.apply(arguments);
+		for (var i =0;i<this.__credible__.resolveQueue.length;++i) {
+			this.__credible__.resolveQueue[i][0].apply(this, this.__credible__.data);
+			if (!this.__credible__.resolveQueue[i][1]) {
+				this.__credible__.resolveQueue.splice(i, 1);i--;
+			}
+		}
+	},
+	$reject: function() {
+		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+		this.__credible__.state = 2;
+		this.__credible__.data = Array.prototype.slice.apply(arguments);
+		for (var i =0;i<this.__credible__.resolveQueue.length;++i) {
+			this.__credible__.rejectQueue[i][0].apply(this, this.__credible__.data);
+			if (!this.__credible__.rejectQueue[i][1]) {
+				this.__credible__.rejectQueue.splice(i, 1);i--;
+			}
+		}
+	},
+	then: function(cb, stayalive) {
+		if (this.__credible__.state===0) this.__credible__.resolveQueue.push([cb, !!stayalive]);
+		else if (this.__credible__.state===1) cb.apply(this, this.__credible__.data);
+		return this;
+	},
+	catch: function(cb, stayalive) { 
+		if (this.__credible__.state===0) this.__credible__.rejectQueue.push([cb, !!stayalive]);
+		else if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
+		return this;
+	}
+}
+
+
 Promises.prototype = Object.create(Creed.prototype, {
 	constructor: {
         value: Promises
@@ -104,6 +155,9 @@ Promises.prototype = Object.create(Creed.prototype, {
         }
     }
 });
+
+
+
 
 /*
 Pending
@@ -172,6 +226,10 @@ Pending = function(callback, args) {
 		});
 	}
 };
+
+
+
+
 Pending.prototype = {
 	constructor: Pending,
 	$resolve: function(result) {
