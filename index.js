@@ -1,13 +1,38 @@
-/*
-Be carefull. Promise injected by WebPack can`t resolve Promise-like argument
-for example resolve(new Promise()) gives paradox result
-*/
+
 var Promise = require('es6-promise').Promise;
 var inject = require('injection').inject;
 
 var Polypromise = function() {
 
 }
+
+
+
+
+
+
+
+/*
+Сredible
+*/
+var Creed = function(cb) {
+
+	Object.defineProperty(this, '__credible__', {
+		enumerable: false,
+		writable: false,
+		configurable: false,
+		pending: false,
+		resolver: false,
+		value: {
+			state: 0, // Wait for state
+			resolveQueue: [], // Queue of then callback functions
+			rejectQueue: [], // Queue of catch callback functions
+			data: []
+		}
+	});
+
+	if ("function"===typeof cb) this.$eval(cb);
+};
 
 /*
 Promises
@@ -20,10 +45,15 @@ var Promises = function(spawn) {
 	this.$results = [];
 	this.$state = 0;
 	this.$completed = 0;
-
+	var self = this;
 	var SubPromise = function(cb) {
-		return this.$promises.push(new Promise(cb));
-	}.bind(this);
+		if (window&&this===window||global&&this===global) {
+			var sp = new SubPromise(cb);
+			self.$promises.push(sp);
+		} else {
+			self.$promises.push(this);
+		}
+	}.inherit(Creed);
 
 	spawn(SubPromise);
 	var self = this;
@@ -48,26 +78,6 @@ var Promises = function(spawn) {
 	}
 }
 
-/*
-Сredible
-*/
-var Creed = function() {
-
-	Object.defineProperty(this, '__credible__', {
-		enumerable: false,
-		writable: false,
-		configurable: false,
-		pending: false,
-		resolver: false,
-		value: {
-			state: 0, // Wait for state
-			resolveQueue: [], // Queue of then callback functions
-			rejectQueue: [], // Queue of catch callback functions
-			data: []
-		}
-	});
-};
-
 Creed.prototype = {
 	constructor: Creed,
 	/*
@@ -87,7 +97,6 @@ Creed.prototype = {
 	$pending: function(cb) {
 		this.__credible__.state=0;
 		if (this.__credible__.pending) {
-			debugger;
 			delete this.__credible__.pending;
 		}
 
@@ -95,7 +104,6 @@ Creed.prototype = {
 		this.__credible__.pending = p;
 		var self = this;
 		p.then(function(response) {
-			debugger;
 			if (self.__credible__.pending===p) // Ignore deprecated pendings
 			self.$resolve(response);
 		})
