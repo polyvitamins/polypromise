@@ -192,7 +192,7 @@ Pending = function(callback, args) {
 
 		if ("function"===typeof callback) {
 
-            var promising = new Promise(function(resolve, reject) {
+            var promising = new Creed(function(resolve, reject) {
             	var injector = inject(callback, {
 	            	resolve: resolve,
 	            	reject: reject
