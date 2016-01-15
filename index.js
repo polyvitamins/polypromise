@@ -129,7 +129,7 @@ Creed.prototype = {
 		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 2;
 		this.__credible__.data = Array.prototype.slice.apply(arguments);
-		for (var i =0;i<this.__credible__.resolveQueue.length;++i) {
+		for (var i =0;i<this.__credible__.rejectQueue.length;++i) {
 			this.__credible__.rejectQueue[i][0].apply(this, this.__credible__.data);
 			if (!this.__credible__.rejectQueue[i][1]) {
 				this.__credible__.rejectQueue.splice(i, 1);i--;
