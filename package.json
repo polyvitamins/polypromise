@@ -24,6 +24,6 @@
     "injection": "polyvitamins/injection"
   },
   "devDependencies": {
-    "tap": "^2.3.3"
+    "tap": "^2.3.4"
   }
 }

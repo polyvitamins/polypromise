@@ -6,12 +6,6 @@ var Polypromise = function() {
 
 }
 
-
-
-
-
-
-
 /*
 Сredible
 */
@@ -33,50 +27,6 @@ var Creed = function(cb) {
 
 	if ("function"===typeof cb) this.$eval(cb);
 };
-
-/*
-Promises
-*/
-var Promises = function(spawn) {
-	// Inherit Creed
-	Creed.apply(this);
-
-	this.$promises = [];
-	this.$results = [];
-	this.$state = 0;
-	this.$completed = 0;
-	var self = this;
-	var SubPromise = function(cb) {
-		if (window&&this===window||global&&this===global) {
-			var sp = new SubPromise(cb);
-			self.$promises.push(sp);
-		} else {
-			self.$promises.push(this);
-		}
-	}.inherit(Creed);
-
-	spawn(SubPromise);
-	var self = this;
-	if (this.$promises.length>0)
-	for (var i = 0;i<this.$promises.length;++i) {
-		this.$promises[i]
-		.then(function(i) {
-			this.$results[i] = arguments[1];
-			++this.$completed;
-			this.$$test();
-		}.bind(this, i))
-		.catch(function(i, e) {
-			this.$results[i] = e;
-			this.$state = 2; // Force reject
-			++this.$completed;
-			this.$$test();
-		}.bind(this, i));
-	}
-	else {
-		this.$state = 1; // Force reject
-		this.$$test();
-	}
-}
 
 Creed.prototype = {
 	constructor: Creed,
@@ -105,6 +55,7 @@ Creed.prototype = {
 		var self = this;
 		p.then(function(response) {
 			if (self.__credible__.pending===p) // Ignore deprecated pendings
+			
 			self.$resolve(response);
 		})
 		.catch(function(response) {
@@ -115,7 +66,7 @@ Creed.prototype = {
 		p.$eval(cb);
 	},
 	$resolve: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+		//if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 1;
 		this.__credible__.data = Array.prototype.slice.apply(arguments);
 		for (var i =0;i<this.__credible__.resolveQueue.length;++i) {
@@ -126,7 +77,7 @@ Creed.prototype = {
 		}
 	},
 	$reject: function() {
-		if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+		//if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
 		this.__credible__.state = 2;
 		this.__credible__.data = Array.prototype.slice.apply(arguments);
 		for (var i =0;i<this.__credible__.rejectQueue.length;++i) {
@@ -137,17 +88,71 @@ Creed.prototype = {
 		}
 	},
 	then: function(cb, stayalive) {
-		if (this.__credible__.state===0) this.__credible__.resolveQueue.push([cb, !!stayalive]);
-		else if (this.__credible__.state===1) cb.apply(this, this.__credible__.data);
+		if (this.__credible__.state===0 || stayalive) this.__credible__.resolveQueue.push([cb, !!stayalive]);
+		if (this.__credible__.state===1) {
+
+            cb.apply(this, this.__credible__.data);
+        }
 		return this;
 	},
 	catch: function(cb, stayalive) { 
-		if (this.__credible__.state===0) this.__credible__.rejectQueue.push([cb, !!stayalive]);
-		else if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
+		if (this.__credible__.state===0 || stayalive) this.__credible__.rejectQueue.push([cb, !!stayalive]);
+		if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
 		return this;
 	}
 }
 
+/*
+Promises
+*/
+var Promises = function(spawn) {
+	// Inherit Creed
+	Creed.apply(this);
+
+	this.$promises = [];
+	this.$results = [];
+	this.$state = 0;
+	this.$completed = 0;
+	this.$finished = false;
+	var self = this;
+	var SubPromise = function(cb) {
+		if ("object"===typeof window&&this===window||"object"===typeof global&&this===global) {
+			var sp = new SubPromise(cb);
+		} else {
+			// Inherit Creed
+			Creed.call(this, cb);
+			self.$promises.push(this);
+		}
+	};
+
+	SubPromise.prototype = Object.create(Creed.prototype, {
+		constructor: {
+	        value: SubPromise
+	    }
+	});
+
+	spawn(SubPromise);
+
+	if (this.$promises.length>0)
+	for (var i = 0;i<this.$promises.length;++i) {
+		this.$promises[i]
+		.then(function(io, val) {
+			this.$results[io[0]] = val;
+			if (!io[1]) { ++this.$completed; io[1]=true; }
+			this.$$test();
+		}.bind(this, [i,false]), true)
+		.catch(function(io, e) {
+			this.$results[io[0]] = e;
+			this.$state = 2; // Force reject
+			if (!io[1]) { ++this.$completed; io[1]=true; }
+			this.$$test();
+		}.bind(this, [i,false]), true);
+	}
+	else {
+		this.$state = 1; // Force reject
+		this.$$test();
+	}
+}
 
 Promises.prototype = Object.create(Creed.prototype, {
 	constructor: {
@@ -157,7 +162,7 @@ Promises.prototype = Object.create(Creed.prototype, {
         value: function() {
             if (this.$completed===this.$promises.length) {
                 this.$state = this.$state!==2 ? 1 : 2;
-
+                this.$finished = true;
                 this[this.$state===1 ? '$resolve' : '$reject'].apply(this, this.$results);
             }
         }
@@ -165,20 +170,14 @@ Promises.prototype = Object.create(Creed.prototype, {
 });
 
 
-
-
 /*
 Pending
 */
 var pendings = {}, 
 Pending = function(callback, args) {
-	this.$then = null;
-	this.$catch = null;
+	Creed.apply(this);
 	this.$id = null;
-	this.$status = 0; // Pending
-	
 	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : (args===undefined ? '' : args.toString()) );
-
 	this.$id = id;
 	if (pendings[id]) {
 		pendings[id].queue.push(this);
@@ -204,9 +203,8 @@ Pending = function(callback, args) {
         } else {
             throw 'Pending first argument can be function or Promise, but '+typeof callback+' found';
         }
-		
-		promising.then(function(result) {
 
+		promising.then(function(result) {
 			var requeue = pendings[id].queue;
 			pendings[id].result = result;
 			pendings[id].status = 1;
@@ -235,44 +233,40 @@ Pending = function(callback, args) {
 	}
 };
 
-
-
-
 Pending.prototype = {
 	constructor: Pending,
-	$resolve: function(result) {
-		if ("function"===typeof this.$then) {
-			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
-			this.$then(result);
-		}
-	},
-	$reject: function(result) {
-		if ("function"===typeof this.$catch) {
-			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
-			this.$catch(result);
-		}
-	},
-	then: function(cb) {
-		
-		if (pendings[this.$id].status===1) {
-			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
-			cb(pendings[this.$id].$result);
-		} else {
-			this.$then = cb;
-		}
-		return this;
-	},
-	catch: function(cb) { 
-		
-		if (pendings[this.$id].status===2) {
-			pendings[this.$id].done++; if (pendings[this.$id].done==pendings[this.$id].queue) pendings.splice(0, pendings.length);
-			cb(pendings[this.$id].result);
-		} else {
-			this.$catch = cb;
-		}
-		
-		return this;
-	}
+    $resolve: function() {
+        if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+        this.__credible__.state = 1;
+        this.__credible__.data = Array.prototype.slice.apply(arguments);
+        for (var i =0;i<this.__credible__.resolveQueue.length;++i) {
+            this.__credible__.resolveQueue[i][0].apply(this, this.__credible__.data);
+            if (!this.__credible__.resolveQueue[i][1]) {
+                this.__credible__.resolveQueue.splice(i, 1);i--;
+            }
+        }
+    },
+    $reject: function() {
+        if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
+        this.__credible__.state = 2;
+        this.__credible__.data = Array.prototype.slice.apply(arguments);
+        for (var i =0;i<this.__credible__.rejectQueue.length;++i) {
+            this.__credible__.rejectQueue[i][0].apply(this, this.__credible__.data);
+            if (!this.__credible__.rejectQueue[i][1]) {
+                this.__credible__.rejectQueue.splice(i, 1);i--;
+            }
+        }
+    },
+    then: function(cb, stayalive) {
+        if (this.__credible__.state===0) this.__credible__.resolveQueue.push([cb, !!stayalive]);
+        else if (this.__credible__.state===1) cb.apply(this, this.__credible__.data);
+        return this;
+    },
+    catch: function(cb, stayalive) {
+        if (this.__credible__.state===0) this.__credible__.rejectQueue.push([cb, !!stayalive]);
+        else if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
+        return this;
+    }
 };
 
 Polypromise.Promise = Promise;
