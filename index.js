@@ -36,9 +36,11 @@ Creed.prototype = {
 	$eval: function(cb) {
 		var self = this;
 		this.__credible__.resolver = cb;
-		cb.call(this, function() {
-			self.$resolve.apply(self, arguments);
-		}, function(result) { self.$reject.apply(self, arguments); });
+		setTimeout(function() {
+			cb.call(self, function() {
+				self.$resolve.apply(self, arguments);
+			}, function(result) { self.$reject.apply(self, arguments); });
+		});
 		return this;
 	},
 	/*
