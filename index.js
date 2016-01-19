@@ -182,8 +182,8 @@ Pending = function(callback, args) {
 	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : (args===undefined ? '' : args.toString()) );
 	this.$id = id;
 	if (pendings[id]) {
-		pendings[id].queue.push(this);
-	} else {
+		pendings[id].queue.push(this);	} else {
+
 		pendings[id] = {
 			queue: [],
 			result: null,
@@ -225,7 +225,7 @@ Pending = function(callback, args) {
 			pendings[id].result = result;
 			pendings[id].status = 2;
 			for (var i = 0; i < requeue.length;++i) {
-				requeue[i].$catch(result);
+				requeue[i].$reject(result);
 			}
 			// Clear pending queue list after moment
 			setTimeout(function() {
