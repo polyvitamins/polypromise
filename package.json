@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/polyvitamins/polypromise#readme",
   "dependencies": {
+    "bitmask": "github:polyvitamins/bitmask",
     "es6-promise": "jakearchibald/es6-promise",
     "injection": "polyvitamins/injection"
   },

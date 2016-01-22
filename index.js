@@ -1,16 +1,17 @@
 
 var Promise = require('es6-promise').Promise;
 var inject = require('injection').inject;
-
+var bit = require('bitmask');
 var Polypromise = function() {
 
 }
+
+bit.define('POLYPROMISE_IMMEDIATE', 10);
 
 /*
 Сredible
 */
 var Creed = function(cb) {
-
 	Object.defineProperty(this, '__credible__', {
 		enumerable: false,
 		writable: false,
@@ -36,11 +37,17 @@ Creed.prototype = {
 	$eval: function(cb) {
 		var self = this;
 		this.__credible__.resolver = cb;
-		setTimeout(function() {
+		var run = function() {
 			cb.call(self, function() {
 				self.$resolve.apply(self, arguments);
 			}, function(result) { self.$reject.apply(self, arguments); });
-		});
+		}
+		if (bit(cb).test(POLYPROMISE_IMMEDIATE)) {
+			run();
+		} else {
+			setTimeout(run);
+		}
+		
 		return this;
 	},
 	/*
