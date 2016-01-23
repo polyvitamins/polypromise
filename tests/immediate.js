@@ -6,8 +6,7 @@ tap.test('Test pending with no delay',function (t) {
 	t.plan(1);
 	var a = 1;
 	var firstinit=false,test3 = new Promise(bit(function(resolve, reject) {
-        t.comment('Step I');
-		if (firstinit) t.bailout("This function should not be executed");
+
 		firstinit = true;
 		resolve(Math.random());
 	}).set(POLYPROMISE_IMMEDIATE))
