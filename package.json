@@ -4,7 +4,7 @@
   "description": "Promise but poly",
   "main": "index.js",
   "scripts": {
-    "test": "tap test.js"
+    "test": "tap tests/general.js && tap tests/pending.js && tap tests/pendings.js && tap tests/promises.js && tap tests/immediate.js"
   },
   "repository": {
     "type": "git",

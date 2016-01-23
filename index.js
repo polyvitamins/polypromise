@@ -278,7 +278,7 @@ Pending.prototype = {
     }
 };
 
-Polypromise.Promise = Promise;
+Polypromise.Promise = Creed;
 Polypromise.Promises = Promises;
 Polypromise.Pending = Pending;
 Polypromise.Creed = Creed;

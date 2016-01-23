@@ -46,25 +46,25 @@ tap.test('Test promises reject', function(t) {
     });
 });
 
-tap.test('Test promises stayalive', function(t) {
+tap.test('Test promises timeout', function(t) {
     t.plan(3);
     var step = 0;
     new Promises(function(Promise) {
         var i = 0;
         for (var a = 0;a<2;++a) {
-            Promise(function(resolve, reject) {
+            Promise(function(a, resolve, reject) {
                 resolve(a+'-one');
 
-                setTimeout(function() {
+                setTimeout(function(a) {
                     resolve(a+'-two');
-                }.bind(this, i), 500);
+                }.bind(this, a), 1000);
                 
-            });
+            }.bind(this, a));
         };
     }).then(function(val1, val2) {
-        if (step===0) t.ok(val1==='0-one' && val2==='1-one', 'Polypromise at resolve #1 must be equal 0-one && 1-one');
-        if (step===1) t.ok(val1==='2-two' && val2==='1-one', 'Polypromise at resolve #1 must be equal 2-two && 1-one');
-        if (step===2) t.ok(val1==='2-two' && val2==='2-two', 'Polypromise at resolve #1 must be equal 2-two && 2-two');
+        if (step===0) t.ok(val1==='0-one' && val2==='1-one', 'Polypromise at resolve #1 must be equal 0-one && 1-one. '+val1+', '+val2+' given');
+        if (step===1) t.ok(val1==='0-two' && val2==='1-one', 'Polypromise at resolve #1 must be equal 0-two && 1-one. '+val1+', '+val2+' given');
+        if (step===2) t.ok(val1==='0-two' && val2==='1-two', 'Polypromise at resolve #1 must be equal 0-two && 1-two '+val1+', '+val2+' given');
         step++;
     }, true).catch(function() {
         t.bailout('This promises can`t reject');
