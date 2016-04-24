@@ -2,71 +2,50 @@
 var Promise = require('es6-promise').Promise;
 var inject = require('injection').inject;
 var bit = require('bitmask');
+var mixin = require('mixin');
 var Polypromise = function() {
 
 }
 
 bit.define('POLYPROMISE_IMMEDIATE', 10);
 
-/*
-Сredible
-*/
-var Creed = function(cb) {
-	Object.defineProperty(this, '__credible__', {
-		enumerable: false,
-		writable: false,
-		configurable: false,
-		pending: false,
-		resolver: false,
-		value: {
-			state: 0, // Wait for state
-			resolveQueue: [], // Queue of then callback functions
-			rejectQueue: [], // Queue of catch callback functions
-			data: []
-		}
-	});
-
-	if ("function"===typeof cb) this.$eval(cb);
-};
-
-Creed.prototype = {
-	constructor: Creed,
-	/*
-	Just eval cb like classic promise resolver
-	*/
-	$eval: function(cb) {
-		var self = this;
-		this.__credible__.resolver = cb;
-		var run = function() {
-			cb.call(self, function() {
-				self.$resolve.apply(self, arguments);
-			}, function(result) { self.$reject.apply(self, arguments); });
-		}
-		if (bit(cb).test(POLYPROMISE_IMMEDIATE)) {
-			run();
-		} else {
-			setTimeout(run);
-		}
-		
-		return this;
-	},
-	/*
-	Ignore last pending resolver if got new pending
-	*/
-	$pending: function(cb) {
-		this.__credible__.state=0;
-		if (this.__credible__.pending) {
-			delete this.__credible__.pending;
-		}
-
-		var p = new Creed();
-		this.__credible__.pending = p;
-		var self = this;
-		p.then(function(response) {
-			if (self.__credible__.pending===p) // Ignore deprecated pendings
+var CreedPrototype = {
+		/*
+		Just eval cb like classic promise resolver
+		*/
+		$eval: function(cb) {
+			var self = this;
+			this.__credible__.resolver = cb;
+			var run = function() {
+				cb.call(self, function() {
+					self.$resolve.apply(self, arguments);
+				}, function(result) { self.$reject.apply(self, arguments); });
+			}
+			if (bit(cb).test(POLYPROMISE_IMMEDIATE)||this.__credible__.options.immediate) {
+				run();
+			} else {
+				setTimeout(run);
+			}
 			
-			self.$resolve(response);
-		})
+			return this;
+		},
+		/*
+		Ignore last pending resolver if got new pending
+		*/
+		$pending: function(cb) {
+			this.__credible__.state=0;
+			if (this.__credible__.pending) {
+				delete this.__credible__.pending;
+			}
+
+			var p = new Creed();
+			this.__credible__.pending = p;
+			var self = this;
+			p.then(function(response) {
+				if (self.__credible__.pending===p) // Ignore deprecated pendings
+				
+				self.$resolve(response);
+			})
 		.catch(function(response) {
 			if (self.__credible__.pending===p) // Ignore deprecated pendings
 			self.$reject(response);
@@ -109,7 +88,49 @@ Creed.prototype = {
 		if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
 		return this;
 	}
+},
+/**
+* Creed factory
+*
+* @param {Object} custom 
+* - config:immediate {Bool} Always call $eval immediate (without setTimeout)
+**/
+factory = function(custom) {
+	/*
+	Сredible
+	*/
+	var Creed = function(cb) {
+		Object.defineProperty(this, '__credible__', {
+			enumerable: false,
+			writable: false,
+			configurable: false,
+			pending: false,
+			resolver: false,
+			value: mixin({
+				state: 0, // Wait for state
+				resolveQueue: [], // Queue of then callback functions
+				rejectQueue: [], // Queue of catch callback functions
+				data: [],
+				options: {
+					immediate: false // Always call $eval immediate
+				}
+			}, "object"===typeof custom?(custom.options||{}):{})
+		});
+
+		if ("function"===typeof cb) this.$eval(cb);
+	};
+
+	Creed.prototype = Object.create(CreedPrototype, {
+		constructor: {
+			value: Creed
+		}
+	});
+
+	return Creed;
 }
+
+
+var Creed = factory();
 
 /*
 Promises
@@ -278,10 +299,12 @@ Pending.prototype = {
     }
 };
 
+
 Polypromise.Promise = Creed;
 Polypromise.Promises = Promises;
 Polypromise.Pending = Pending;
 Polypromise.Creed = Creed;
+Polypromise.factory = factory;
 
 
 module.exports = Polypromise;

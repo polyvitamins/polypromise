@@ -1,7 +1,7 @@
 {
   "name": "polypromise",
-  "version": "1.0.0",
-  "description": "Promise but poly",
+  "version": "1.1.0",
+  "description": "Extended promise",
   "main": "index.js",
   "scripts": {
     "test": "tap tests/general.js && tap tests/pending.js && tap tests/pendings.js && tap tests/promises.js && tap tests/immediate.js"
@@ -22,7 +22,8 @@
   "dependencies": {
     "bitmask": "github:polyvitamins/bitmask",
     "es6-promise": "jakearchibald/es6-promise",
-    "injection": "polyvitamins/injection"
+    "injection": "github:polyvitamins/injection",
+    "mixin": "github:polyvitamins/mixin"
   },
   "devDependencies": {
     "tap": "^2.3.4"
