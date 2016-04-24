@@ -21,7 +21,7 @@ var CreedPrototype = {
 					self.$resolve.apply(self, arguments);
 				}, function(result) { self.$reject.apply(self, arguments); });
 			}
-			if (bit(cb).test(POLYPROMISE_IMMEDIATE)||this.__credible__.options.immediate) {
+			if (bit(cb).test(POLYPROMISE_IMMEDIATE)||this.__credible__.config.immediate) {
 				run();
 			} else {
 				setTimeout(run);
@@ -111,7 +111,7 @@ factory = function(custom) {
 				resolveQueue: [], // Queue of then callback functions
 				rejectQueue: [], // Queue of catch callback functions
 				data: [],
-				options: {
+				config: {
 					immediate: false // Always call $eval immediate
 				}
 			}, "object"===typeof custom?(custom.options||{}):{})
