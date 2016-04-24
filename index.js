@@ -63,6 +63,7 @@ var CreedPrototype = {
 				this.__credible__.resolveQueue.splice(i, 1);i--;
 			}
 		}
+		this.$complete();
 	},
 	$reject: function() {
 		//if (this.__credible__.state!==0) throw 'You can not change Creed state twice';
@@ -74,6 +75,15 @@ var CreedPrototype = {
 				this.__credible__.rejectQueue.splice(i, 1);i--;
 			}
 		}
+		this.$complete();
+	},
+	$complete: function() {
+		for (var i =0;i<this.__credible__.alwaysQueue.length;++i) {
+			this.__credible__.alwaysQueue[i][0].apply(this, this.__credible__.data);
+			if (!this.__credible__.alwaysQueue[i][1]) {
+				this.__credible__.alwaysQueue.splice(i, 1);i--;
+			}
+		}
 	},
 	then: function(cb, stayalive) {
 		if (this.__credible__.state===0 || stayalive) this.__credible__.resolveQueue.push([cb, !!stayalive]);
@@ -81,11 +91,16 @@ var CreedPrototype = {
 
             cb.apply(this, this.__credible__.data);
         }
-		return this;
+        return this;
 	},
 	catch: function(cb, stayalive) { 
 		if (this.__credible__.state===0 || stayalive) this.__credible__.rejectQueue.push([cb, !!stayalive]);
 		if (this.__credible__.state===2) cb.apply(this, this.__credible__.data);
+		return this;
+	},
+	complete: function() {
+		if (this.__credible__.state===0 || stayalive) this.__credible__.alwaysQueue.push([cb, !!stayalive]);
+		if (this.__credible__.state!==0) cb.apply(this, this.__credible__.data);
 		return this;
 	}
 },
@@ -108,8 +123,9 @@ factory = function(custom) {
 			resolver: false,
 			value: mixin({
 				state: 0, // Wait for state
-				resolveQueue: [], // Queue of then callback functions
-				rejectQueue: [], // Queue of catch callback functions
+				resolveQueue: [], // Queue of then handler
+				rejectQueue: [], // Queue of catch handler
+				alwaysQueue: [], // Queue of always handler
 				data: [],
 				config: {
 					immediate: false // Always call $eval immediate
