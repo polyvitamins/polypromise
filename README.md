@@ -83,7 +83,6 @@ var Promise = require('polypromise').factory({
 Aviable options:
 - immediate : Means that handler will be called without setTimeout
 - manual: Function handler will not be called automaticly
-- 
 
 # License
 Under MIT license
