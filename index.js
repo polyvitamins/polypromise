@@ -128,12 +128,13 @@ factory = function(custom) {
 				alwaysQueue: [], // Queue of always handler
 				data: [],
 				config: {
-					immediate: false // Always call $eval immediate
+					immediate: false, // Always call $eval immediate
+					manual: false
 				}
-			}, "object"===typeof custom?(custom.options||{}):{})
+			}, custom||{})
 		});
 
-		if ("function"===typeof cb) this.$eval(cb);
+		if ("function"===typeof cb && !this.__credible__.config.manual) this.$eval(cb);
 	};
 
 	Creed.prototype = Object.create(CreedPrototype, {
