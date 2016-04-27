@@ -10,10 +10,10 @@ var Polypromise = function() {
 bit.define('POLYPROMISE_IMMEDIATE', 10);
 
 var CreedPrototype = {
-		/*
-		Just eval cb like classic promise resolver
-		*/
-		$eval: function(cb) {
+	/*
+	Just eval cb like classic promise resolver
+	*/
+	$eval: function(cb) {
 			var self = this;
 			this.__credible__.resolver = cb;
 			var run = function() {
@@ -28,11 +28,11 @@ var CreedPrototype = {
 			}
 			
 			return this;
-		},
-		/*
-		Ignore last pending resolver if got new pending
-		*/
-		$pending: function(cb) {
+	},
+	/*
+	Ignore last pending resolver if got new pending
+	*/
+	$pending: function(cb) {
 			this.__credible__.state=0;
 			if (this.__credible__.pending) {
 				delete this.__credible__.pending;
@@ -84,6 +84,11 @@ var CreedPrototype = {
 				this.__credible__.alwaysQueue.splice(i, 1);i--;
 			}
 		}
+	},
+	$clearQueues: function() {
+		this.__credible__.alwaysQueue = [];
+		this.__credible__.rejectQueue = [];
+		this.__credible__.resolveQueue = [];
 	},
 	then: function(cb, stayalive) {
 		if (this.__credible__.state===0 || stayalive) this.__credible__.resolveQueue.push([cb, !!stayalive]);
