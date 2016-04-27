@@ -70,3 +70,19 @@ new Promises(function(Promise) {
 	// result3 = 'ok'
 });
 ```
+
+## Promise factory
+Create your Promise using factory
+```
+var Promise = require('polypromise').factory({
+	immediate: true,
+	manual: true
+});
+```
+
+Aviable options:
+- immediate : Means that handler will be called without setTimeout
+- manual: Function handler will not be called automaticly
+
+# License
+Under MIT license
