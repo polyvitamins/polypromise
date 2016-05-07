@@ -1,6 +1,5 @@
 
 var Promise = require('es6-promise').Promise;
-var inject = require('injection').inject;
 var bit = require('bitmask');
 var mixin = require('mixin');
 var Polypromise = function() {
@@ -244,11 +243,7 @@ Pending = function(callback, args) {
 		if ("function"===typeof callback) {
 
             var promising = new Creed(function(resolve, reject) {
-            	var injector = inject(callback, {
-	            	resolve: resolve,
-	            	reject: reject
-	            }, this);
-	            injector.apply(this, args);
+            	callback(resolve, reject);
             });
         } else if ("object"===typeof callback) {
             var promising = callback;

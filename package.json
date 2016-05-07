@@ -1,6 +1,6 @@
 {
   "name": "polypromise",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Extended promise",
   "main": "index.js",
   "scripts": {
