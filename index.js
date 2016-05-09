@@ -131,21 +131,28 @@ factory = function(custom) {
 				rejectQueue: [], // Queue of catch handler
 				alwaysQueue: [], // Queue of always handler
 				data: [],
-				config: {
+				config: mixin({
 					immediate: false, // Always call $eval immediate
 					manual: false
-				}
+				}, custom||{})
 			}, custom||{})
 		});
 
 		if ("function"===typeof cb && !this.__credible__.config.manual) this.$eval(cb);
 	};
 
-	Creed.prototype = Object.create(CreedPrototype, {
+	Creed.prototype = mixin({}, CreedPrototype, {
+		constructor: Creed
+	});
+	/*Object.create(CreedPrototype, {
 		constructor: {
 			value: Creed
+		},
+		__super__: {
+			enumerable: false,
+			value: CreedPrototype
 		}
-	});
+	});*/
 
 	return Creed;
 }
