@@ -5,9 +5,10 @@ Pending = require('./../index.js').Pending;
 
 
 tap.test('Test pending with no delay',function (t) {
-	t.plan(2);
+	t.plan(3);
 	var firstinit=false,test3 = new Pending(function(resolve, reject, hello) {
         t.comment('Step I');
+        t.ok(hello=='hello', 'Pending must have outside arguments `'+hello+ '` given');
 		if (firstinit) t.bailout("This function should not be executed");
 		firstinit = true;
 		resolve(Math.random());

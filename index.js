@@ -232,8 +232,11 @@ Promises.prototype = Object.create(Creed.prototype, {
 Pending
 */
 var pendings = {}, 
+PendingCreed = factory({
+	manual: true
+}),
 Pending = function(callback, args) {
-	Creed.apply(this);
+	PendingCreed.apply(this);
 	this.$id = null;
 	var id = callback.toString()+( "object"===typeof args ? JSON.stringify(args) : (args===undefined ? '' : args.toString()) );
 	this.$id = id;
@@ -250,8 +253,8 @@ Pending = function(callback, args) {
 		if ("function"===typeof callback) {
 
             var promising = new Creed(function(resolve, reject) {
-            	callback(resolve, reject);
-            });
+            	callback.apply(this, [resolve, reject].concat(Array.prototype.slice.apply(args)||[]));
+            }.bind(this));
         } else if ("object"===typeof callback) {
             var promising = callback;
         } else {
